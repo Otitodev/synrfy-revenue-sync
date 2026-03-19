@@ -45,6 +45,33 @@ mappings:
     mews_service_id: "13ac7699-a751-497e-8ab4-b35c007fa0c8"
     mews_accounting_category_id: null
 
+  # AV / presentation equipment (projectors, screens, HDMI cables, flip charts, etc.)
+  # → MEWS demo service: "Mice Service" (id: 13ac7699-a751-497e-8ab4-b35c007fa0c8)
+  equipment:
+    display_name: "AV / Equipment"
+    mews_service_id: "13ac7699-a751-497e-8ab4-b35c007fa0c8"
+    mews_accounting_category_id: null
+
+  # Food & Beverage catering (meals, drinks, etc.)
+  # → MEWS demo service: "breakfast - FnB" (id: 8f5a4dc5-7a46-4a78-a7b7-b1c0008cda7d)
+  catering:
+    display_name: "Food & Beverage / Catering"
+    mews_service_id: "8f5a4dc5-7a46-4a78-a7b7-b1c0008cda7d"
+    mews_accounting_category_id: null
+
+  # Hotel room accommodation linked to an M&E booking
+  # → MEWS demo service: "ROOM CHARGE" (id: 3fd144f4-5c3d-45d8-bf77-b1b400a83d16)
+  hotelroom:
+    display_name: "Hotel Room / Accommodation"
+    mews_service_id: "3fd144f4-5c3d-45d8-bf77-b1b400a83d16"
+    mews_accounting_category_id: null
+
+  # Generic "room" component (legacy/alternative naming)
+  room:
+    display_name: "Room"
+    mews_service_id: "3fd144f4-5c3d-45d8-bf77-b1b400a83d16"
+    mews_accounting_category_id: null
+
   # AV equipment — compound key wins over "extra" alone
   # → MEWS demo service: "Mice Service" (id: 13ac7699-a751-497e-8ab4-b35c007fa0c8)
   "extra:av":

@@ -52,18 +52,15 @@ class VenueSuiteClient:
         """
         url = f"{self._base_url}/venues/{self._venue_id}/bookings"
 
-        # Pass the target date as filter params if the API supports it.
-        # The staging API response will reveal whether these are honoured;
-        # if not, all bookings are fetched and filtered locally (see below).
         params = {
-            "start_date": target_date.isoformat(),
-            "end_date": target_date.isoformat(),
+            "start": target_date.isoformat(),
+            "end": target_date.isoformat(),
         }
 
         logger.info("Fetching VenueSuite bookings for %s", target_date)
 
         try:
-            response = httpx.post(
+            response = httpx.get(
                 url,
                 headers=self._headers,
                 params=params,
@@ -77,10 +74,9 @@ class VenueSuiteClient:
                 f"VenueSuite returned {exc.response.status_code}: {exc.response.text}"
             ) from exc
 
-        raw: list[dict[str, Any]] = response.json()
-        if not isinstance(raw, list):
-            # Some API versions wrap in a key
-            raw = raw.get("bookings", raw.get("data", []))
+        body = response.json()
+        # Response is {"data": [...], "meta": {...}}
+        raw: list[dict[str, Any]] = body.get("data", body) if isinstance(body, dict) else body
 
         transactions = _extract_transactions(raw, target_date)
         logger.info(

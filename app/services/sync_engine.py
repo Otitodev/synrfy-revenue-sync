@@ -57,6 +57,11 @@ def run_sync(target_date: date, db: Session) -> SyncResult:
     mews_client = MewsClient()
     mapper = get_category_mapper()
 
+    # Cache reservation + bill lookups within a single sync run to avoid
+    # redundant API calls when multiple products share the same booking.
+    reservation_cache: dict = {}   # booking_reference → MewsReservation | Exception
+    bill_cache: dict = {}          # account_id → bill_id
+
     # ── Steps 2+3: Per-transaction processing (fully isolated) ─────────────────
     for tx in transactions:
 
@@ -81,7 +86,9 @@ def run_sync(target_date: date, db: Session) -> SyncResult:
             continue
 
         try:
-            bill_id, charge_id = _process_transaction(tx, mews_client, mapper)
+            bill_id, charge_id = _process_transaction(
+                tx, mews_client, mapper, reservation_cache, bill_cache
+            )
             _upsert_record(
                 db, tx,
                 status="posted",
@@ -120,16 +127,40 @@ def run_sync(target_date: date, db: Session) -> SyncResult:
     return result
 
 
-def _process_transaction(tx: VenueTransaction, mews_client, mapper) -> tuple[str, str]:
+def _process_transaction(
+    tx: VenueTransaction,
+    mews_client,
+    mapper,
+    reservation_cache: dict,
+    bill_cache: dict,
+) -> tuple[str, str]:
     """
     Steps 2a, 2b, 3a, 3b for a single transaction.
     Returns (bill_id, charge_id) on success. Raises on any error.
+    Uses reservation_cache and bill_cache to avoid repeat API calls within a run.
     """
-    # 2a: Find the MEWS reservation
-    reservation = mews_client.find_reservation(tx.booking_reference)
+    # 2a: Find the MEWS reservation (cached per booking_reference).
+    # Failures are also cached so subsequent products for the same booking
+    # don't generate redundant API calls.
+    if tx.booking_reference not in reservation_cache:
+        try:
+            reservation_cache[tx.booking_reference] = mews_client.find_reservation(
+                tx.booking_reference
+            )
+        except Exception as exc:
+            reservation_cache[tx.booking_reference] = exc
 
-    # 2b: Get or create a bill for the customer account linked to this reservation
-    bill_id = mews_client.get_or_create_bill(reservation.account_id)
+    cached = reservation_cache[tx.booking_reference]
+    if isinstance(cached, Exception):
+        raise cached
+    reservation = cached
+
+    # 2b: Get or create a bill (cached per account_id)
+    if reservation.account_id not in bill_cache:
+        bill_cache[reservation.account_id] = mews_client.get_or_create_bill(
+            reservation.account_id
+        )
+    bill_id = bill_cache[reservation.account_id]
 
     # 3a: Map VenueSuite category to MEWS service
     mapping = mapper.resolve(tx.component, tx.category)
