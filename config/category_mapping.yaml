@@ -9,15 +9,8 @@
 #   3. "fallback"                         (always used if nothing else matches)
 #
 # ── How to populate mews_service_id ────────────────────────────────────────
-# Run the following against your MEWS instance to list available services:
-#
-#   curl -X POST https://api.mews-demo.com/api/connector/v1/services/getAll \
-#     -H "Content-Type: application/json" \
-#     -d '{
-#           "ClientToken": "E0D439EE522F44368DC78E1BFB03710C-D24FB11DBE31D4621C4817E028D9E1D",
-#           "AccessToken": "C66EF7B239D24632943D115EDE9CB810-EA00F8FD8294692C940F6B5A8F9453D",
-#           "Client": "SynrfyRevenueSync/1.0"
-#         }'
+# See README.md → "Category Mapping" for the curl command to list available
+# MEWS services and retrieve the correct UUIDs for your property.
 #
 # Copy the relevant Id values into the fields below.
 # mews_accounting_category_id is optional — leave null to use the service default.

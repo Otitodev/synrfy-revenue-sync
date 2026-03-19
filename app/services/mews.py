@@ -49,15 +49,21 @@ class MewsClient:
         Look up a MEWS reservation by its confirmation number (= VenueSuite
         booking reference). Raises ReservationNotFoundError if not found.
         """
-        payload = {
-            **self._auth,
-            "Numbers": [booking_reference],
-            "Limitation": {"Count": 1},
-        }
-        data = self._post(
-            "/api/connector/v1/reservations/getAll/2023-06-06", payload
-        )
-        reservations = data.get("Reservations", [])
+        # Try by Numbers (MEWS internal number) first, then by ChannelNumber
+        # (external booking reference stored when creating the reservation via API).
+        for filter_key in ("Numbers", "ChannelNumbers"):
+            payload = {
+                **self._auth,
+                filter_key: [booking_reference],
+                "Limitation": {"Count": 1},
+            }
+            data = self._post(
+                "/api/connector/v1/reservations/getAll/2023-06-06", payload
+            )
+            reservations = data.get("Reservations", [])
+            if reservations:
+                break
+
         if not reservations:
             raise ReservationNotFoundError(
                 f"No MEWS reservation found for booking reference '{booking_reference}'"
@@ -135,10 +141,10 @@ class MewsClient:
             **self._auth,
             "CustomerIds": [account_id],
             "States": ["Open"],
-            "Limitation": {"Count": 10},
+            "Limitation": {"Count": 500},
         }
         data = self._post("/api/connector/v1/bills/getAll", payload)
-        bills = data.get("Bills", [])
+        bills = [b for b in data.get("Bills", []) if b.get("State") == "Open"]
         if bills:
             return bills[0]["Id"]
         return None
