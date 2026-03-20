@@ -70,19 +70,7 @@ curl -X POST https://api.mews-demo.com/api/connector/v1/services/getAll \
 
 Copy the `Id` values for the relevant services into the YAML file.
 
-**5. Run the demo script (optional but recommended)**
-
-```bash
-python demo_test.py
-```
-
-Runs 6 checks without starting a server: verifies credentials, pings both APIs, runs a live sync, prints results, and confirms idempotency. Pass a date to test a specific day:
-
-```bash
-python demo_test.py 2026-04-02
-```
-
-**6. Start the server**
+**5. Start the server**
 
 ```bash
 uvicorn main:app --reload
@@ -92,18 +80,47 @@ The server starts at `http://localhost:8000`.
 
 | URL | Purpose |
 |---|---|
-| `http://localhost:8000/ui` | Web dashboard (trigger syncs, view history) |
+| `http://localhost:8000/ui` | Web dashboard — easiest way to test |
 | `http://localhost:8000/docs` | Interactive API docs |
 
 ---
 
-## Web Dashboard
+## Testing with the Web Dashboard
 
-Open `http://localhost:8000/ui` in a browser after starting the server.
+The easiest way to test the service is the built-in dashboard.
 
-- **Run Sync panel** — pick a date and click "Run Sync". Results (posted / skipped / failed / duration) appear inline.
-- **History table** — last 50 sync records, colour-coded by status, with bill and charge IDs.
-- **Status bar** — shows the last run timestamp and next scheduled sync time.
+**1. Start the server** (if not already running):
+```bash
+uvicorn main:app --reload
+```
+
+**2. Open the dashboard:**
+```
+http://localhost:8000/ui
+```
+
+**3. Pick a date and run a sync** — select a date that has VenueSuite bookings (e.g. `2026-04-02`), then click **Run Sync**. Results appear immediately:
+
+- `posted` — charges successfully written to MEWS
+- `skipped` — already posted in a previous run (idempotency)
+- `failed` — no matching MEWS reservation found (expected in staging — see Known Limitations)
+- `duration` — how long the sync took
+
+**4. Check the history table** — every sync record appears below, colour-coded (green = posted, red = failed), with booking reference, amount, and MEWS bill/charge IDs. Hover over any truncated ID to see the full value.
+
+**5. Verify charges in MEWS** — after a successful sync, log into the MEWS demo at `https://app.mews-demo.com`, find the reservation, and open its bill. Every product line posted by the sync will appear as a separate charge entry on the bill.
+
+**6. Re-run to confirm idempotency** — click Run Sync again for the same date. You should see `posted=0, skipped=N` — no charges are doubled.
+
+---
+
+## Demo script (alternative — no server needed)
+
+```bash
+python demo_test.py 2026-04-02
+```
+
+Runs 6 automated checks: verifies credentials → pings both APIs → runs a live sync → prints a results table → confirms idempotency. Useful for CI or quick connectivity checks without starting the server.
 
 ---
 
@@ -201,6 +218,19 @@ sqlite3 synrfy.db "SELECT booking_reference, slot_date, product_id, status, mews
 Components currently mapped: `space` (room hire), `package` (F&B packages), `equipment` (AV/presentation), `catering` (food & beverage), `hotelroom`, `room`.
 
 If an unmapped component comes through, the fallback is used and a warning is logged — the sync never fails because of a missing mapping.
+
+**Tax rate mapping** is also configured in the same YAML file:
+
+```yaml
+tax_rate_map:
+  21: "NL-S"       # Netherlands 21% standard BTW
+  9: "NL-2019-R"   # Netherlands 9% reduced BTW
+  0: "NL-Z"        # Zero rate
+```
+
+Set these codes to match your MEWS property's tax environment. Leave `tax_rate_map: {}` when testing against the public MEWS demo (which is UK-configured and does not accept NL tax codes).
+
+**Amounts are gross (incl. VAT).** The service uses `pricing.included` from VenueSuite — the tax-inclusive amount — as `GrossValue` in MEWS. This matches the gross pricing environment used by MEWS.
 
 ---
 
