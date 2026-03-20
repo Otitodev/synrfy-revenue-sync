@@ -70,13 +70,40 @@ curl -X POST https://api.mews-demo.com/api/connector/v1/services/getAll \
 
 Copy the `Id` values for the relevant services into the YAML file.
 
-**5. Start the server**
+**5. Run the demo script (optional but recommended)**
+
+```bash
+python demo_test.py
+```
+
+Runs 6 checks without starting a server: verifies credentials, pings both APIs, runs a live sync, prints results, and confirms idempotency. Pass a date to test a specific day:
+
+```bash
+python demo_test.py 2026-04-02
+```
+
+**6. Start the server**
 
 ```bash
 uvicorn main:app --reload
 ```
 
-The server starts at `http://localhost:8000`. API docs are available at `http://localhost:8000/docs`.
+The server starts at `http://localhost:8000`.
+
+| URL | Purpose |
+|---|---|
+| `http://localhost:8000/ui` | Web dashboard (trigger syncs, view history) |
+| `http://localhost:8000/docs` | Interactive API docs |
+
+---
+
+## Web Dashboard
+
+Open `http://localhost:8000/ui` in a browser after starting the server.
+
+- **Run Sync panel** — pick a date and click "Run Sync". Results (posted / skipped / failed / duration) appear inline.
+- **History table** — last 50 sync records, colour-coded by status, with bill and charge IDs.
+- **Status bar** — shows the last run timestamp and next scheduled sync time.
 
 ---
 
@@ -101,6 +128,14 @@ curl -X POST http://localhost:8000/sync/run \
 ```
 
 Or run the included script: `bash curl.sh`
+
+### Sync history (via HTTP)
+
+```bash
+curl http://localhost:8000/sync/history
+```
+
+Returns the 50 most recent sync records as JSON.
 
 **Response:**
 
