@@ -79,6 +79,19 @@ mappings:
     mews_service_id: "8f5a4dc5-7a46-4a78-a7b7-b1c0008cda7d"
     mews_accounting_category_id: null
 
+# ── Tax rate mapping ────────────────────────────────────────────────────────
+# Maps VenueSuite pricing.tax_percentage → MEWS TaxCode for this property.
+# Set codes to match your MEWS property's tax environment.
+# Netherlands BTW (production):
+#   21% standard rate → NL-S
+#    9% reduced rate  → NL-2019-R
+#    0% zero rate     → NL-Z
+#
+# NOTE: The public MEWS demo enterprise is UK-configured and does not accept NL
+# tax codes. Leave tax_rate_map empty ({}) when testing against the MEWS demo.
+# Populate with NL codes when pointing at your production MEWS property.
+tax_rate_map: {}
+
 # Always present. Used when no mapping key matches.
 # A WARNING is logged every time this is used — update the mappings above
 # to resolve warnings.

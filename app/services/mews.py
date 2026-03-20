@@ -5,8 +5,8 @@ All requests are HTTP POST with a JSON body that includes authentication tokens.
 Rate limit: 200 requests per 30 seconds. 429 responses are retried with
 exponential backoff + jitter (up to _MAX_RETRIES attempts).
 
-Charge posting uses POST /api/connector/v1/orders/add which accepts a custom
-UnitAmount, so the amount from VenueSuite can be passed through directly.
+Charge posting uses POST /api/connector/v1/orders/add with GrossValue
+(pricing.included from VenueSuite) + TaxCodes for the property's tax environment.
 The bill lookup/create step ensures the charge lands on the correct open bill.
 """
 
@@ -94,25 +94,27 @@ class MewsClient:
         reservation_id: str,
         bill_id: str,
         service_id: str,
-        net_amount: float,
+        gross_amount: float,
         currency: str,
         notes: str,
         accounting_category_id: Optional[str] = None,
+        tax_codes: Optional[list[str]] = None,
     ) -> str:
         """
         Post a revenue charge to MEWS via orders/add. Returns the ChargeId.
 
-        Uses POST /api/connector/v1/orders/add which accepts a custom UnitAmount
-        and links the charge to the customer account and reservation.
-        The bill_id is passed so MEWS pins the charge to the correct open bill.
+        gross_amount must be the tax-inclusive amount (pricing.included / 100).
+        tax_codes should match the property's tax environment (e.g. ["NL-S"] for
+        Netherlands 21% BTW). MEWS uses GrossValue + TaxCodes to calculate the
+        tax breakdown in a gross pricing environment.
         """
         item: dict[str, Any] = {
             "Name": notes,
             "UnitCount": 1,
             "UnitAmount": {
                 "Currency": currency,
-                "GrossValue": round(net_amount, 2),
-                "TaxCodes": [],
+                "GrossValue": round(gross_amount, 2),
+                "TaxCodes": tax_codes or [],
             },
         }
         if accounting_category_id:

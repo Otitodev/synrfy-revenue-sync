@@ -48,6 +48,11 @@ class CategoryMapper:
             raise ValueError("category_mapping.yaml must contain a 'fallback' entry")
         self._fallback = _parse_entry(fallback_raw)
 
+        # tax_rate_map: VenueSuite tax_percentage (int) → MEWS TaxCode (str)
+        self.tax_rate_map: dict[int, str] = {
+            int(k): str(v) for k, v in raw.get("tax_rate_map", {}).items()
+        }
+
     def resolve(self, component: str, category: str) -> CategoryMapping:
         """
         Return the CategoryMapping for this (component, category) pair.

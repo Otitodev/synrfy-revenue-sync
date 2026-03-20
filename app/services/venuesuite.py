@@ -27,7 +27,8 @@ class VenueTransaction:
     component: str    # "space" | "package" | "extra" | ...
     category: str     # product-level category string from API
     title: str
-    amount_cents: int  # ex-VAT (pricing.excluded)
+    amount_cents: int  # gross/incl-VAT (pricing.included)
+    tax_percentage: int  # VAT rate from VenueSuite (e.g. 21, 9, 0)
     quantity: int
     currency: str
 
@@ -47,8 +48,8 @@ class VenueSuiteClient:
         Fetch all bookings from VenueSuite and return product lines whose
         slot start date matches target_date.
 
-        VenueSuite prices are in cents; we use pricing.excluded (ex-VAT)
-        to match the MEWS net-amount convention.
+        VenueSuite prices are in cents; we use pricing.included (gross/incl-VAT)
+        to match the MEWS gross pricing environment.
         """
         url = f"{self._base_url}/venues/{self._venue_id}/bookings"
 
@@ -123,7 +124,8 @@ def _extract_transactions(
 
             for product in slot.get("products", []):
                 pricing = product.get("pricing", {})
-                amount_cents = pricing.get("excluded", 0)  # ex-VAT
+                amount_cents = pricing.get("included", 0)  # gross/incl-VAT
+                tax_percentage = int(pricing.get("tax_percentage", 0))
                 quantity = product.get("quantity", 1)
 
                 transactions.append(
@@ -136,6 +138,7 @@ def _extract_transactions(
                         category=product.get("category", ""),
                         title=product.get("title", ""),
                         amount_cents=amount_cents,
+                        tax_percentage=tax_percentage,
                         quantity=quantity,
                         currency=currency,
                     )

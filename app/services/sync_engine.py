@@ -165,8 +165,16 @@ def _process_transaction(
     # 3a: Map VenueSuite category to MEWS service
     mapping = mapper.resolve(tx.component, tx.category)
 
-    # 3b: Post the charge (convert cents → decimal, apply quantity)
-    net_amount = (tx.amount_cents * tx.quantity) / 100.0
+    # 3b: Post the charge (convert gross cents → decimal, apply quantity)
+    gross_amount = (tx.amount_cents * tx.quantity) / 100.0
+    tax_code = mapper.tax_rate_map.get(tx.tax_percentage)
+    if tax_code is None:
+        logger.warning(
+            "Unknown tax_percentage %d for product %d — posting with no tax code",
+            tx.tax_percentage,
+            tx.product_id,
+        )
+    tax_codes = [tax_code] if tax_code else []
     notes = (
         f"{tx.title} | VenueSuite booking {tx.booking_reference} "
         f"| slot {tx.slot_date} | product {tx.product_id}"
@@ -176,10 +184,11 @@ def _process_transaction(
         reservation_id=reservation.id,
         bill_id=bill_id,
         service_id=mapping.mews_service_id,
-        net_amount=net_amount,
+        gross_amount=gross_amount,
         currency=tx.currency,
         notes=notes,
         accounting_category_id=mapping.mews_accounting_category_id,
+        tax_codes=tax_codes,
     )
 
     return bill_id, charge_id
