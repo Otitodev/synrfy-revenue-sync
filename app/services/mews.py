@@ -111,7 +111,7 @@ class MewsClient:
             "UnitCount": 1,
             "UnitAmount": {
                 "Currency": currency,
-                "NetValue": round(net_amount, 2),
+                "GrossValue": round(net_amount, 2),
                 "TaxCodes": [],
             },
         }

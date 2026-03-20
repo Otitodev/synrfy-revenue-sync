@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 
 from app.database import Base, engine
 from app.routers import sync as sync_router
@@ -27,3 +28,8 @@ app = FastAPI(
 )
 
 app.include_router(sync_router.router, prefix="/sync", tags=["sync"])
+
+
+@app.get("/ui", include_in_schema=False)
+def ui_redirect():
+    return RedirectResponse(url="/sync/ui")
